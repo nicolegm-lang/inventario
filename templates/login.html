@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sesión{% endblock %}
+{% block content %}
+<section class="auth-card">
+  <h1>Inventario de Laboratorio</h1>
+  <p>Ingresa con tu cuenta para consultar y actualizar el inventario.</p>
+  <form method="post" class="form">
+    <label>Correo</label>
+    <input type="email" name="email" required placeholder="usuario@laboratorio.com">
+
+    <label>Contraseña</label>
+    <input type="password" name="password" required>
+
+    <button type="submit" class="primary">Entrar</button>
+  </form>
+  <p class="hint">Primer acceso: admin@laboratorio.local / admin123</p>
+</section>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Inventario{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>Inventario</h1>
+    <p>Consulta, registra y actualiza materiales del laboratorio.</p>
+  </div>
+  <a href="{{ url_for('new_item') }}" class="button primary">+ Agregar producto</a>
+</section>
+
+<section class="stats-grid">
+  <div class="stat-card">
+    <span>Total de productos</span>
+    <strong>{{ items|length }}</strong>
+  </div>
+  <div class="stat-card warning">
+    <span>Bajo stock</span>
+    <strong>{{ low_stock_count }}</strong>
+  </div>
+</section>
+
+<form method="get" class="search-box">
+  <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre, categoría, ubicación, lote, proveedor o estado">
+  <button type="submit">Buscar</button>
+  {% if q %}<a href="{{ url_for('index') }}">Limpiar</a>{% endif %}
+</form>
+
+<div class="table-card">
+  <table>
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th>Categoría</th>
+        <th>Cantidad</th>
+        <th>Ubicación</th>
+        <th>Lote</th>
+        <th>Caducidad</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+        {% set exp_badge = expiration_badge(item.expiration_date) %}
+        <tr>
+          <td><a href="{{ url_for('item_detail', item_id=item.id) }}"><strong>{{ item.name }}</strong></a></td>
+          <td>{{ item.category or '—' }}</td>
+          <td>
+            {{ item.quantity|round(2) }} {{ item.unit }}
+            {% if item.quantity <= item.minimum_stock and item.status != 'Baja' %}
+              <span class="badge warning">Bajo stock</span>
+            {% endif %}
+          </td>
+          <td>{{ item.location or '—' }}</td>
+          <td>{{ item.batch or '—' }}</td>
+          <td>
+            {{ item.expiration_date or '—' }}
+            {% if exp_badge %}<span class="badge danger">{{ exp_badge }}</span>{% endif %}
+          </td>
+          <td><span class="badge">{{ item.status }}</span></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="empty">No hay productos registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

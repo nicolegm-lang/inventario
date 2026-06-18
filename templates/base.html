@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Inventario de Laboratorio{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('index') }}">Inventario Lab</a>
+    {% if g.user %}
+      <nav>
+        <a href="{{ url_for('index') }}">Inventario</a>
+        <a href="{{ url_for('movements') }}">Historial</a>
+        {% if g.user.role == 'admin' %}
+          <a href="{{ url_for('users') }}">Usuarios</a>
+        {% endif %}
+        <span class="user-pill">{{ g.user.name }} · {{ g.user.role }}</span>
+        <a href="{{ url_for('change_password') }}">Mi contraseña</a>
+        <a href="{{ url_for('logout') }}">Salir</a>
+      </nav>
+    {% endif %}
+  </header>
+
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <section class="messages">
+          {% for category, message in messages %}
+            <div class="message {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </section>
+      {% endif %}
+    {% endwith %}
+
+    <div id="change-banner" class="change-banner hidden">
+      Hay cambios recientes en el inventario. <button onclick="location.reload()">Actualizar vista</button>
+    </div>
+
+    {% block content %}{% endblock %}
+  </main>
+
+  {% if g.user %}
+  <script>
+    let firstVersion = null;
+    async function checkVersion() {
+      try {
+        const response = await fetch("{{ url_for('api_version') }}");
+        const data = await response.json();
+        if (firstVersion === null) {
+          firstVersion = data.version;
+          return;
+        }
+        if (data.version && firstVersion && data.version !== firstVersion) {
+          document.getElementById('change-banner').classList.remove('hidden');
+        }
+      } catch (e) {
+        // Se omite para no interrumpir el uso de la app.
+      }
+    }
+    setInterval(checkVersion, 5000);
+    checkVersion();
+  </script>
+  {% endif %}
+</body>
+</html>
