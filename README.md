@@ -1,173 +1,173 @@
-# Inventario de Laboratorio
+# Inventario de Laboratorio — versión Supabase
 
-Aplicación web MVP para administrar inventario de laboratorio con usuarios, roles, movimientos y bitácora.
+Esta versión ya no usa Flask, SQLite, Render ni un servidor propio siempre encendido.
 
-## Funciones incluidas
+La arquitectura es:
 
-- Inicio de sesión con cuenta.
-- Dos roles:
-  - **admin**: puede crear/desactivar cuentas y también modificar inventario.
-  - **usuario**: puede consultar, agregar y modificar inventario, registrar entradas, salidas, ajustes y bajas.
-- Inventario con:
-  - nombre,
-  - categoría,
-  - descripción,
-  - cantidad,
-  - unidad,
-  - ubicación,
-  - lote,
-  - fecha de caducidad,
-  - stock mínimo,
-  - proveedor,
-  - estado.
-- Historial de movimientos por producto y general.
-- Alertas visuales de bajo stock y caducidad próxima.
-- Aviso automático cuando hay cambios recientes en el inventario.
+```text
+App web estática + Supabase Auth + Supabase PostgreSQL + Realtime
+```
 
-## Requisitos
+## Qué incluye
 
-- Python 3.10 o superior.
+- Inicio de sesión con correo y contraseña.
+- Registro de usuarios.
+- Administrador que autoriza correos.
+- Usuarios activos que pueden agregar y editar inventario.
+- Registro de entradas, salidas, ajustes y bajas.
+- Historial de movimientos con usuario, fecha, cantidad previa y cantidad nueva.
+- Alertas de bajo stock y caducidad próxima.
+- Cambio de contraseña.
+- Suscripción en tiempo real a cambios de inventario y movimientos.
 
-## Instalación en Windows
+## Archivos importantes
 
-Desde la carpeta del proyecto:
+```text
+index.html
+assets/app.js
+assets/styles.css
+config.js
+config.example.js
+sql/01_schema.sql
+sql/02_promote_first_admin.sql
+sql/03_demo_data.sql
+```
+
+## 1. Crear proyecto en Supabase
+
+1. Entra a Supabase.
+2. Crea un proyecto nuevo.
+3. Espera a que se cree la base de datos.
+4. Ve a **SQL Editor**.
+5. Copia y ejecuta el contenido de:
+
+```text
+sql/01_schema.sql
+```
+
+Este archivo crea tablas, roles, políticas RLS, función de movimientos y triggers.
+
+## 2. Configurar la app
+
+En Supabase, ve a:
+
+```text
+Project Settings > API
+```
+
+Copia:
+
+- Project URL
+- anon public key
+
+Abre `config.js` y pega los valores:
+
+```js
+window.LAB_CONFIG = {
+  SUPABASE_URL: 'https://TU-PROYECTO.supabase.co',
+  SUPABASE_ANON_KEY: 'TU_ANON_PUBLIC_KEY'
+};
+```
+
+No uses la `service_role key` en esta app. Solo debe usarse la `anon public key`.
+
+## 3. Probar localmente
+
+Desde la carpeta del proyecto, ejecuta:
 
 ```bash
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-python app.py initdb
-python app.py
+python -m http.server 8080
 ```
 
-Después abre en el navegador:
+Luego abre:
 
 ```text
-http://127.0.0.1:5000
+http://localhost:8080
 ```
 
-## Instalación en Linux / macOS
+También puedes usar la extensión **Live Server** de VS Code.
 
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python app.py initdb
-python app.py
-```
+## 4. Crear el primer administrador
 
-Después abre:
+1. Abre la app.
+2. Entra a la pestaña **Registrarme**.
+3. Crea tu usuario con correo y contraseña.
+4. Regresa a Supabase > SQL Editor.
+5. Abre:
 
 ```text
-http://127.0.0.1:5000
+sql/02_promote_first_admin.sql
 ```
 
-## Usuario inicial
-
-Al inicializar la base de datos se crea una cuenta administrativa:
+6. Cambia:
 
 ```text
-Correo: admin@laboratorio.local
-Contraseña: admin123
+TU_CORREO@EJEMPLO.COM
 ```
 
-Cambia esa contraseña antes de usar la aplicación en un entorno real.
+por tu correo real.
 
-## Acceso desde otras computadoras del laboratorio
+7. Ejecuta el SQL.
 
-Si la computadora donde corre la app está en la misma red del laboratorio, inicia la app y entra desde otro equipo usando la IP de la computadora servidor:
+Después vuelve a iniciar sesión. Ya debes aparecer como administrador.
+
+## 5. Crear usuarios del laboratorio
+
+Desde la app, como administrador:
+
+1. Ve a **Usuarios**.
+2. Autoriza el correo de la persona.
+3. Elige si será `Usuario` o `Administrador`.
+4. La persona entra a la app y se registra con ese correo.
+
+Si alguien se registra sin estar autorizado, su cuenta quedará inactiva y no podrá consultar ni modificar inventario.
+
+## 6. Publicarla sin servidor propio
+
+Puedes subir estos archivos como sitio estático a:
+
+- GitHub Pages
+- Netlify
+- Cloudflare Pages
+- Vercel como sitio estático
+
+La app no necesita backend propio porque Supabase se encarga de:
+
+- Login
+- Base de datos
+- Seguridad por RLS
+- Realtime
+
+## 7. Seguridad
+
+- No pegues la `service_role key` en `config.js`.
+- Usa solo la `anon public key`.
+- Las reglas de acceso están en las políticas RLS del SQL.
+- Los usuarios no autorizados pueden crear una cuenta de Auth si el registro está habilitado, pero no podrán acceder al inventario si no están activos en `profiles`.
+- Para producción, revisa en Supabase Auth si quieres confirmar correos antes de permitir login.
+
+## 8. Flujo recomendado
 
 ```text
-http://IP_DEL_SERVIDOR:5000
+Administrador autoriza correo
+        ↓
+Usuario se registra con ese correo
+        ↓
+Trigger crea perfil activo según allowed_accounts
+        ↓
+Usuario entra y trabaja con inventario
+        ↓
+Cada movimiento queda en historial
 ```
 
-Ejemplo:
+## 9. Exportar respaldo
 
-```text
-http://192.168.1.50:5000
-```
+Desde Supabase puedes exportar datos con:
 
-## Acceso desde fuera del laboratorio
+- Table Editor > Export CSV
+- Database Backups, según el plan de Supabase
+- `pg_dump`, si usas conexión PostgreSQL desde terminal
 
-Para que la app no dependa de estar en la misma red, revisa el archivo:
+## 10. Notas
 
-```text
-DEPLOYMENT.md
-```
-
-Ahí se incluyen dos rutas recomendadas:
-
-2. **Nube con HTTPS**: despliegue en un servicio como Render, Railway, Fly.io, Google Cloud Run, Azure App Service o un VPS.
-
-Esta versión ya incluye archivos para despliegue básico:
-
-```text
-Procfile
-render.yaml
-.env.example
-```
-
-## Notas importantes para producción
-
-Esta versión usa SQLite para que sea fácil de probar. Para uso real con muchos usuarios o publicación permanente en internet, lo ideal es migrar a PostgreSQL y desplegar en un servidor o nube.
-
-También se recomienda:
-
-- Cambiar `SECRET_KEY` por una variable de entorno segura.
-- Usar HTTPS.
-- Hacer respaldos automáticos de la base de datos.
-- Agregar recuperación de contraseñas.
-- Definir políticas de respaldo y auditoría.
-
-## Estructura del proyecto
-
-```text
-lab_inventory_app/
-├── app.py
-├── requirements.txt
-├── README.md
-├── DEPLOYMENT.md
-├── Procfile
-├── render.yaml
-├── .env.example
-├── templates/
-│   ├── base.html
-│   ├── login.html
-│   ├── index.html
-│   ├── item_form.html
-│   ├── item_detail.html
-│   ├── movements.html
-│   ├── users.html
-│   └── user_form.html
-└── static/
-    └── styles.css
-```
-
-
-## Acceso desde otra red / internet
-
-Para que alguien pueda entrar desde fuera de la red local, no basta con correr `python app.py` en tu computadora. Debes publicar la app en una nube o servidor.
-
-La opción recomendada sin VPN es **Render**. Revisa el archivo:
-
-```text
-RENDER_DEPLOY.md
-```
-
-El proyecto ya incluye:
-
-```text
-Procfile
-render.yaml
-.env.example
-```
-
-Estos archivos permiten ejecutar la app con Gunicorn y guardar la base de datos en una ruta persistente.
-
-La URL final se verá parecida a:
-
-```text
-https://inventario-laboratorio.onrender.com
-```
-
-Una vez publicada, los usuarios podrán entrar desde cualquier red con su cuenta de la aplicación.
+La función `register_movement` actualiza cantidad e historial en una sola operación para evitar errores cuando dos usuarios modifican el inventario casi al mismo tiempo.
